@@ -15,6 +15,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 HISTORICO_FILE = 'historico_predicciones.csv'
+PREDICCIONES_FILE = 'predicciones_mlb.csv'
 WEIGHTS_FILE = 'model_weights.json'
 BANKROLL_FILE = 'bankroll.json'
 JUICE_RATE = 0.04
@@ -305,11 +306,19 @@ class MLBPredictor:
             games = statsapi.schedule(date=target_date)
         except Exception as e:
             logger.error(f"Error fetching games: {e}")
-            return
+            return []
         
         if not games:
             logger.info(f"No games scheduled for {target_date}")
-            return
+            # Crear archivo vacío para evitar errores en git add
+            empty_df = pd.DataFrame(columns=[
+                'Fecha', 'ID_Partido', 'Equipo_Visita', 'Equipo_Casa',
+                'Prob_Visita', 'Prob_Casa', 'Cuota_Visita', 'Cuota_Casa',
+                'Kelly_Visita', 'Kelly_Casa'
+            ])
+            empty_df.to_csv(PREDICCIONES_FILE, index=False)
+            logger.info(f"Created empty predictions file: {PREDICCIONES_FILE}")
+            return []
         
         predictions = []
         
@@ -382,9 +391,20 @@ class MLBPredictor:
             self.historical_data.to_csv(HISTORICO_FILE, index=False)
             logger.info(f"Saved {len(predictions)} predictions to {HISTORICO_FILE}")
             
+            # Guardar predicciones del día en archivo separado para git push
+            new_predictions_df.to_csv(PREDICCIONES_FILE, index=False)
+            logger.info(f"Saved today's predictions to {PREDICCIONES_FILE}")
+            
             return predictions
         else:
             logger.info("No valid predictions generated.")
+            # Crear archivo vacío como fallback
+            empty_df = pd.DataFrame(columns=[
+                'Fecha', 'ID_Partido', 'Equipo_Visita', 'Equipo_Casa',
+                'Prob_Visita', 'Prob_Casa', 'Cuota_Visita', 'Cuota_Casa',
+                'Kelly_Visita', 'Kelly_Casa'
+            ])
+            empty_df.to_csv(PREDICCIONES_FILE, index=False)
             return []
 
 def main():
