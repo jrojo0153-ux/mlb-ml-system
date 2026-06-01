@@ -2,9 +2,13 @@ name: Ejecucion Diaria Modelo MLB
 
 on:
   schedule:
-    # Se ejecuta todos los días a las 14:00 UTC (Ajusta según tu zona horaria)
+    # Se ejecuta automáticamente todos los días a las 14:00 UTC
     - cron: '0 14 * * *'
-  workflow_dispatch: # Esto permite activar el modelo manualmente con un botón
+  workflow_dispatch: # Permite activar el modelo manualmente con un botón
+
+# Permisos necesarios para que GitHub Actions pueda guardar el archivo CSV en tu repositorio
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -26,3 +30,11 @@ jobs:
 
     - name: Ejecutar Predicciones MLB
       run: python main.py
+
+    - name: Guardar predicciones en el repositorio
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "41898282+github-actions[bot]@://github.com"
+        git add predicciones_mlb.csv
+        git commit -m "Actualizacion automatica de predicciones MLB [skip ci]" || echo "No hay cambios para guardar"
+        git push
