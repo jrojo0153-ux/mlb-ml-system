@@ -1,431 +1,208 @@
-import datetime
-import json
 import os
-import sys
-import logging
-import statsapi
+import joblib
 import pandas as pd
 import numpy as np
-from pathlib import Path
+import statsapi
+from datetime import datetime, timedelta
+from config import MODEL_PATH, KELLY_FRACTION
+from data_collector import fetch_espn_live_odds
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+TEAM_MAP = {
+    'Arizona Diamondbacks': 109, 'D-backs': 109, 'ARI': 109,
+    'Atlanta Braves': 144, 'ATL': 144,
+    'Baltimore Orioles': 110, 'BAL': 110,
+    'Boston Red Sox': 111, 'BOS': 111,
+    'Chicago Cubs': 112, 'CHC': 112,
+    'Chicago White Sox': 145, 'CWS': 145, 'CHW': 145,
+    'Cincinnati Reds': 113, 'CIN': 113,
+    'Cleveland Guardians': 114, 'CLE': 114,
+    'Colorado Rockies': 115, 'COL': 115,
+    'Detroit Tigers': 116, 'DET': 116,
+    'Houston Astros': 117, 'HOU': 117,
+    'Kansas City Royals': 118, 'KC': 118, 'KCR': 118,
+    'Los Angeles Angels': 108, 'LAA': 108,
+    'Los Angeles Dodgers': 119, 'LAD': 119,
+    'Miami Marlins': 146, 'MIA': 146,
+    'Milwaukee Brewers': 158, 'MIL': 158,
+    'Minnesota Twins': 142, 'MIN': 142,
+    'New York Mets': 121, 'NYM': 121,
+    'New York Yankees': 147, 'NYY': 147,
+    'Oakland Athletics': 133, 'Athletics': 133, 'OAK': 133,
+    'Philadelphia Phillies': 143, 'PHI': 143,
+    'Pittsburgh Pirates': 134, 'PIT': 134,
+    'San Diego Padres': 135, 'SD': 135, 'SDG': 135,
+    'San Francisco Giants': 137, 'SF': 137, 'SFG': 137,
+    'Seattle Mariners': 136, 'SEA': 136,
+    'St. Louis Cardinals': 138, 'STL': 138,
+    'Tampa Bay Rays': 139, 'TB': 139, 'TBR': 139,
+    'Texas Rangers': 140, 'TEX': 140,
+    'Toronto Blue Jays': 141, 'TOR': 141,
+    'Washington Nationals': 120, 'WSH': 120, 'WAS': 120
+}
 
-HISTORICO_FILE = 'historico_predicciones.csv'
-PREDICCIONES_FILE = 'predicciones_mlb.csv'
-WEIGHTS_FILE = 'model_weights.json'
-BANKROLL_FILE = 'bankroll.json'
-JUICE_RATE = 0.04
-KELLY_FRACTION = 0.25
-DEFAULT_BANKROLL = 1000.0
-DEFAULT_ERA = 4.50
+def resolve_team_id(name: str) -> int:
+    if not name:
+        return None
+    clean = name.strip()
+    if clean in TEAM_MAP:
+        return TEAM_MAP[clean]
+    for key, value in TEAM_MAP.items():
+        if key.lower() in clean.lower() or clean.lower() in key.lower():
+            return value
+    return None
 
-class MLBPredictor:
-    def __init__(self):
-        self.weights = self.load_weights()
-        self.bankroll = self.load_bankroll()
-        self.historical_data = self.load_historical()
-        
-    def load_weights(self):
-        if os.path.exists(WEIGHTS_FILE):
-            try:
-                with open(WEIGHTS_FILE, 'r') as f:
-                    return json.load(f)
-            except Exception as e:
-                logger.warning(f"Error loading weights: {e}. Using defaults.")
-        
-        return {
-            'peso_pitcher': 1.0,
-            'peso_localia': 1.0,
-            'peso_historial': 0.5
-        }
+def fetch_live_rolling_metrics(team_id: int, ref_date_str: str) -> dict:
+    # Consulta los encuentros reales jugados el último mes
+    start_date = (datetime.strptime(ref_date_str, "%Y-%m-%d") - timedelta(days=35)).strftime("%Y-%m-%d")
+    end_date = (datetime.strptime(ref_date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
     
-    def save_weights(self):
-        try:
-            with open(WEIGHTS_FILE, 'w') as f:
-                json.dump(self.weights, f, indent=2)
-            logger.info(f"Weights saved: {self.weights}")
-        except Exception as e:
-            logger.error(f"Error saving weights: {e}")
-    
-    def load_bankroll(self):
-        if os.path.exists(BANKROLL_FILE):
-            try:
-                with open(BANKROLL_FILE, 'r') as f:
-                    data = json.load(f)
-                    return data.get('amount', DEFAULT_BANKROLL)
-            except Exception as e:
-                logger.warning(f"Error loading bankroll: {e}. Using default.")
+    try:
+        games = statsapi.schedule(start_date=start_date, end_date=end_date, team=team_id)
+    except Exception:
+        games = []
         
-        return DEFAULT_BANKROLL
-    
-    def save_bankroll(self, amount):
-        try:
-            with open(BANKROLL_FILE, 'w') as f:
-                json.dump({'amount': round(amount, 2)}, f, indent=2)
-            self.bankroll = amount
-            logger.info(f"Bankroll updated: ${amount:.2f}")
-        except Exception as e:
-            logger.error(f"Error saving bankroll: {e}")
-    
-    def load_historical(self):
-        if os.path.exists(HISTORICO_FILE):
-            try:
-                return pd.read_csv(HISTORICO_FILE)
-            except Exception as e:
-                logger.warning(f"Error loading historical data: {e}")
-        
-        return pd.DataFrame()
-    
-    def initialize_historical(self):
-        if not os.path.exists(HISTORICO_FILE):
-            columns = [
-                'Fecha', 'ID_Partido', 'Equipo_Visita', 'Equipo_Casa',
-                'Prob_Visita', 'Prob_Casa', 'Cuota_Visita', 'Cuota_Casa',
-                'Kelly_Visita', 'Kelly_Casa', 'Resultado_Real', 'Pronostico_Correcto', 'ROI_Generado'
-            ]
-            df = pd.DataFrame(columns=columns)
-            df.to_csv(HISTORICO_FILE, index=False)
-            self.historical_data = df
-    
-    def update_historical_results(self):
-        try:
-            self.historical_data = pd.read_csv(HISTORICO_FILE)
-        except Exception as e:
-            logger.error(f"Error reading historical file: {e}")
-            return
-        
-        pending_games = self.historical_data[
-            (self.historical_data['Resultado_Real'].isna()) | 
-            (self.historical_data['Resultado_Real'] == '')
-        ].copy()
-        
-        if pending_games.empty:
-            logger.info("No pending games to update.")
-            return
-        
-        logger.info(f"Found {len(pending_games)} pending games to update.")
-        
-        for idx, game in pending_games.iterrows():
-            game_id = game['ID_Partido']
-            try:
-                game_data = statsapi.get('game', {'gamePk': int(game_id)})
-                
-                if game_data.get('gameData', {}).get('status', {}).get('detailedState') == 'Game Over':
-                    home_team = game['Equipo_Casa']
-                    away_team = game['Equipo_Visita']
-                    
-                    home_score = game_data.get('liveData', {}).get('linescore', {}).get('teams', {}).get('home', {}).get('runs', 0)
-                    away_score = game_data.get('liveData', {}).get('linescore', {}).get('teams', {}).get('away', {}).get('runs', 0)
-                    
-                    if home_score > away_score:
-                        resultado = home_team
-                    elif away_score > home_score:
-                        resultado = away_team
-                    else:
-                        resultado = 'Empate'
-                    
-                    self.historical_data.loc[idx, 'Resultado_Real'] = resultado
-                    
-                    pronostico = 1 if (
-                        (resultado == home_team and self.historical_data.loc[idx, 'Prob_Casa'] > self.historical_data.loc[idx, 'Prob_Visita']) or
-                        (resultado == away_team and self.historical_data.loc[idx, 'Prob_Visita'] > self.historical_data.loc[idx, 'Prob_Casa'])
-                    ) else 0
-                    
-                    self.historical_data.loc[idx, 'Pronostico_Correcto'] = pronostico
-                    
-                    kelly_bet = self.historical_data.loc[idx, 'Kelly_Casa'] if resultado == home_team else self.historical_data.loc[idx, 'Kelly_Visita']
-                    roi = (kelly_bet * self.historical_data.loc[idx, 'Cuota_Casa' if resultado == home_team else 'Cuota_Visita']) - kelly_bet if pronostico else -kelly_bet
-                    
-                    self.historical_data.loc[idx, 'ROI_Generado'] = roi
-                    self.bankroll += roi
-                    
-                    logger.info(f"Updated game {game_id}: {resultado}, Correct={pronostico}, ROI={roi:.2f}")
-                    
-            except Exception as e:
-                logger.warning(f"Error fetching game {game_id}: {e}")
-        
-        self.historical_data.to_csv(HISTORICO_FILE, index=False)
-        self.save_bankroll(self.bankroll)
-    
-    def calculate_model_bias(self):
-        if self.historical_data.empty or 'Pronostico_Correcto' not in self.historical_data.columns:
-            return None
-        
-        completed = self.historical_data[self.historical_data['Resultado_Real'].notna()]
-        
-        if len(completed) < 5:
-            return None
-        
-        accuracy = completed['Pronostico_Correcto'].mean()
-        
-        visited_bias = completed[completed['Pronostico_Correcto'] == 0]['Prob_Visita'].mean()
-        home_bias = completed[completed['Pronostico_Correcto'] == 0]['Prob_Casa'].mean()
-        
-        return {
-            'accuracy': accuracy,
-            'visited_bias': visited_bias,
-            'home_bias': home_bias
-        }
-    
-    def adjust_weights(self):
-        bias = self.calculate_model_bias()
-        
-        if bias is None:
-            logger.info("Insufficient data for weight adjustment.")
-            return
-        
-        logger.info(f"Model Bias Analysis: {bias}")
-        
-        if bias['accuracy'] < 0.45:
-            adjustment = 1.02
-        elif bias['accuracy'] > 0.60:
-            adjustment = 0.98
-        else:
-            adjustment = 1.0
-        
-        if bias['visited_bias'] and not pd.isna(bias['visited_bias']) and bias['visited_bias'] > 50:
-            self.weights['peso_pitcher'] *= adjustment
-        elif bias['visited_bias'] and not pd.isna(bias['visited_bias']) and bias['visited_bias'] < 40:
-            self.weights['peso_pitcher'] /= adjustment
-        
-        if bias['home_bias'] and not pd.isna(bias['home_bias']) and bias['home_bias'] > 55:
-            self.weights['peso_localia'] *= adjustment
-        elif bias['home_bias'] and not pd.isna(bias['home_bias']) and bias['home_bias'] < 45:
-            self.weights['peso_localia'] /= adjustment
-        
-        self.save_weights()
-    
-    def simulate_odds(self, prob_win):
-        prob_loss = 1 - prob_win
-        
-        decimal_odds = (1 + JUICE_RATE) / prob_win
-        
-        return round(decimal_odds, 2)
-    
-    def calculate_implied_probability(self, decimal_odds):
-        return 1 / decimal_odds
-    
-    def has_positive_expected_value(self, our_prob, decimal_odds):
-        implied_prob = self.calculate_implied_probability(decimal_odds)
-        return our_prob > implied_prob
-    
-    def kelly_bet_size(self, our_prob, decimal_odds, unit_bankroll=None):
-        if unit_bankroll is None:
-            unit_bankroll = self.bankroll
-        
-        if unit_bankroll <= 0:
-            return 0
-        
-        implied_prob = self.calculate_implied_probability(decimal_odds)
-        
-        if our_prob <= implied_prob:
-            return 0
-        
-        win_prob = our_prob
-        loss_prob = 1 - our_prob
-        win_amount = decimal_odds - 1
-        
-        kelly_fraction = (win_prob * win_amount - loss_prob) / win_amount
-        
-        if kelly_fraction <= 0:
-            return 0
-        
-        fractional_kelly = kelly_fraction * KELLY_FRACTION
-        
-        bet_size = unit_bankroll * fractional_kelly
-        
-        return round(max(0, bet_size), 2)
-    
-    def get_pitcher_stats(self, pitcher_id):
-        try:
-            stats_data = statsapi.player_stat_data(pitcher_id, group="pitching", type="season")
-            if stats_data.get('stats') and len(stats_data['stats']) > 0:
-                era = float(stats_data['stats'][0]['stats'].get('era', DEFAULT_ERA))
-                wins = int(stats_data['stats'][0]['stats'].get('wins', 0))
-                innings_pitched = float(stats_data['stats'][0]['stats'].get('inningsPitched', 0))
-                return {
-                    'era': era,
-                    'wins': wins,
-                    'innings_pitched': innings_pitched
-                }
-        except Exception as e:
-            logger.warning(f"Error fetching pitcher {pitcher_id}: {e}")
-        
-        return {
-            'era': DEFAULT_ERA,
-            'wins': 0,
-            'innings_pitched': 0
-        }
-    
-    def calculate_prediction(self, home_pitcher_id, away_pitcher_id, home_name, away_name):
-        home_stats = self.get_pitcher_stats(home_pitcher_id)
-        away_stats = self.get_pitcher_stats(away_pitcher_id)
-        
-        era_home = home_stats['era']
-        era_away = away_stats['era']
-        
-        total_era = era_home + era_away
-        if total_era == 0:
-            total_era = 9.0
-        
-        prob_home_base = (era_away / total_era) * 100
-        prob_away_base = (era_home / total_era) * 100
-        
-        home_advantage = 4.0 * self.weights['peso_localia']
-        prob_home = prob_home_base + home_advantage
-        prob_away = prob_away_base - home_advantage
-        
-        total_prob = prob_home + prob_away
-        if total_prob == 0:
-            total_prob = 100
-        
-        prob_home = (prob_home / total_prob) * 100
-        prob_away = (prob_away / total_prob) * 100
-        
-        prob_home = round(min(99.0, max(1.0, prob_home)), 2)
-        prob_away = round(min(99.0, max(1.0, prob_away)), 2)
-        
-        return {
-            'prob_home': prob_home,
-            'prob_away': prob_away,
-            'era_home': round(era_home, 2),
-            'era_away': round(era_away, 2)
-        }
-    
-    def process_games(self, target_date=None):
-        if target_date is None:
-            target_date = datetime.date.today().strftime('%Y-%m-%d')
-        
-        logger.info(f"Processing games for {target_date}")
-        
-        try:
-            games = statsapi.schedule(date=target_date)
-        except Exception as e:
-            logger.error(f"Error fetching games: {e}")
-            return []
-        
-        if not games:
-            logger.info(f"No games scheduled for {target_date}")
-            # Crear archivo vacío para evitar errores en git add
-            empty_df = pd.DataFrame(columns=[
-                'Fecha', 'ID_Partido', 'Equipo_Visita', 'Equipo_Casa',
-                'Prob_Visita', 'Prob_Casa', 'Cuota_Visita', 'Cuota_Casa',
-                'Kelly_Visita', 'Kelly_Casa'
-            ])
-            empty_df.to_csv(PREDICCIONES_FILE, index=False)
-            logger.info(f"Created empty predictions file: {PREDICCIONES_FILE}")
-            return []
-        
-        predictions = []
-        
-        for game in games:
-            try:
-                game_id = game.get('game_pk')
-                home_name = game.get('home_name')
-                away_name = game.get('away_name')
-                
-                home_pitcher_id = game.get('home_probable_pitcher_id')
-                away_pitcher_id = game.get('away_probable_pitcher_id')
-                
-                if not all([game_id, home_name, away_name, home_pitcher_id, away_pitcher_id]):
-                    logger.warning(f"Incomplete data for game {game_id}")
-                    continue
-                
-                logger.info(f"Analyzing: {away_name} @ {home_name}")
-                
-                prediction = self.calculate_prediction(
-                    home_pitcher_id, away_pitcher_id, home_name, away_name
-                )
-                
-                prob_home = prediction['prob_home'] / 100
-                prob_away = prediction['prob_away'] / 100
-                
-                odds_home = self.simulate_odds(prob_home)
-                odds_away = self.simulate_odds(prob_away)
-                
-                kelly_home = self.kelly_bet_size(prob_home, odds_home)
-                kelly_away = self.kelly_bet_size(prob_away, odds_away)
-                
-                has_value_home = self.has_positive_expected_value(prob_home, odds_home)
-                has_value_away = self.has_positive_expected_value(prob_away, odds_away)
-                
-                if has_value_home:
-                    logger.info(f"Value found: {home_name} @ {odds_home} (prob={prob_home:.2%})")
-                if has_value_away:
-                    logger.info(f"Value found: {away_name} @ {odds_away} (prob={prob_away:.2%})")
-                
-                prediction_row = {
-                    'Fecha': target_date,
-                    'ID_Partido': game_id,
-                    'Equipo_Visita': away_name,
-                    'Equipo_Casa': home_name,
-                    'Prob_Visita': prediction['prob_away'],
-                    'Prob_Casa': prediction['prob_home'],
-                    'Cuota_Visita': odds_away,
-                    'Cuota_Casa': odds_home,
-                    'Kelly_Visita': kelly_away,
-                    'Kelly_Casa': kelly_home,
-                    'Resultado_Real': '',
-                    'Pronostico_Correcto': '',
-                    'ROI_Generado': ''
-                }
-                
-                predictions.append(prediction_row)
-                
-            except Exception as e:
-                logger.error(f"Error processing game: {e}")
-                continue
-        
-        if predictions:
-            new_predictions_df = pd.DataFrame(predictions)
+    completed = []
+    for g in games:
+        if g.get('status') == 'Final' and g.get('game_type') in ['R', 'F', 'D', 'L', 'W']:
+            is_home = g['home_id'] == team_id
+            runs_scored = g['home_score'] if is_home else g['away_score']
+            runs_allowed = g['away_score'] if is_home else g['home_score']
+            won = 1 if runs_scored > runs_allowed else 0
+            completed.append({
+                'date': g['game_date'],
+                'runs_scored': runs_scored,
+                'runs_allowed': runs_allowed,
+                'won': won
+            })
             
-            if os.path.exists(HISTORICO_FILE) and not self.historical_data.empty:
-                self.historical_data = pd.concat([self.historical_data, new_predictions_df], ignore_index=True)
-            else:
-                self.historical_data = new_predictions_df
-            
-            self.historical_data.to_csv(HISTORICO_FILE, index=False)
-            logger.info(f"Saved {len(predictions)} predictions to {HISTORICO_FILE}")
-            
-            # Guardar predicciones del día en archivo separado para git push
-            new_predictions_df.to_csv(PREDICCIONES_FILE, index=False)
-            logger.info(f"Saved today's predictions to {PREDICCIONES_FILE}")
-            
-            return predictions
-        else:
-            logger.info("No valid predictions generated.")
-            # Crear archivo vacío como fallback
-            empty_df = pd.DataFrame(columns=[
-                'Fecha', 'ID_Partido', 'Equipo_Visita', 'Equipo_Casa',
-                'Prob_Visita', 'Prob_Casa', 'Cuota_Visita', 'Cuota_Casa',
-                'Kelly_Visita', 'Kelly_Casa'
-            ])
-            empty_df.to_csv(PREDICCIONES_FILE, index=False)
-            return []
+    completed = sorted(completed, key=lambda x: x['date'])[-10:]
+    
+    if len(completed) < 3:
+        return {'rolling_runs_scored': 4.5, 'rolling_runs_allowed': 4.5, 'rolling_win_rate': 0.5, 'rest_days': 1}
+        
+    df_temp = pd.DataFrame(completed)
+    last_game_date = pd.to_datetime(df_temp['date'].iloc[-1])
+    current_game_date = pd.to_datetime(ref_date_str)
+    rest_days = min(max((current_game_date - last_game_date).days, 1), 10)
+    
+    return {
+        'rolling_runs_scored': df_temp['runs_scored'].mean(),
+        'rolling_runs_allowed': df_temp['runs_allowed'].mean(),
+        'rolling_win_rate': df_temp['won'].mean(),
+        'rest_days': rest_days
+    }
 
-def main():
-    logger.info("Starting MLB Prediction System")
+def parse_live_american_odds(odds_details: str, home_name: str, away_name: str):
+    default_home, default_away = -110, -110
+    if not odds_details or odds_details == "N/A" or " " not in odds_details:
+        return default_home, default_away
+    try:
+        parts = odds_details.split(" ")
+        fav_abbr = parts[0]
+        fav_odds = int(parts[1])
+        
+        fav_id = resolve_team_id(fav_abbr)
+        home_id = resolve_team_id(home_name)
+        away_id = resolve_team_id(away_name)
+        
+        underdog_odds = -fav_odds - 20 if fav_odds < 0 else -fav_odds + 20
+        underdog_odds = max(underdog_odds, 100) if underdog_odds > 0 else min(underdog_odds, -100)
+            
+        if fav_id == home_id:
+            return fav_odds, underdog_odds
+        elif fav_id == away_id:
+            return underdog_odds, fav_odds
+    except Exception:
+        pass
+    return default_home, default_away
+
+def am_to_dec(am_odds):
+    return (am_odds / 100) + 1 if am_odds > 0 else (100 / abs(am_odds)) + 1
+
+def run_predictions():
+    if not os.path.exists(MODEL_PATH):
+        print("Modelo ausente. Corre primero train.py para entrenarlo.")
+        return
+        
+    model_data = joblib.load(MODEL_PATH)
+    model = model_data['model']
+    feature_cols = model_data['features']
     
-    predictor = MLBPredictor()
+    print("Capturando datos actuales de ESPN...")
+    today_games = fetch_espn_live_odds()
     
-    predictor.initialize_historical()
+    if not today_games:
+        print("No se encontraron partidos programados para hoy en ESPN.")
+        return
+        
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    print(f"Analizando {len(today_games)} partidos para la jornada: {today_str}\n")
     
-    predictor.update_historical_results()
-    
-    predictor.adjust_weights()
-    
-    predictor.process_games()
-    
-    logger.info(f"Current Bankroll: ${predictor.bankroll:.2f}")
-    logger.info("MLB Prediction System completed successfully")
+    results = []
+    for g in today_games:
+        home_name, away_name = g['home_name'], g['away_name']
+        home_id, away_id = resolve_team_id(home_name), resolve_team_id(away_name)
+        
+        if not home_id or not away_id:
+            continue
+            
+        h_stats = fetch_live_rolling_metrics(home_id, today_str)
+        a_stats = fetch_live_rolling_metrics(away_id, today_str)
+        
+        feat_vector = {
+            'home_rolling_runs_scored': h_stats['rolling_runs_scored'],
+            'home_rolling_runs_allowed': h_stats['rolling_runs_allowed'],
+            'home_rolling_win_rate': h_stats['rolling_win_rate'],
+            'home_rest_days': h_stats['rest_days'],
+            'away_rolling_runs_scored': a_stats['rolling_runs_scored'],
+            'away_rolling_runs_allowed': a_stats['rolling_runs_allowed'],
+            'away_rolling_win_rate': a_stats['rolling_win_rate'],
+            'away_rest_days': a_stats['rest_days'],
+            'diff_win_rate': h_stats['rolling_win_rate'] - a_stats['rolling_win_rate'],
+            'diff_runs_scored': h_stats['rolling_runs_scored'] - a_stats['rolling_runs_scored'],
+            'diff_runs_allowed': h_stats['rolling_runs_allowed'] - a_stats['rolling_runs_allowed'],
+            'diff_rest_days': h_stats['rest_days'] - a_stats['rest_days']
+        }
+        
+        df_feat = pd.DataFrame([feat_vector])[feature_cols]
+        prob_home = model.predict_proba(df_feat)[0, 1]
+        prob_away = 1 - prob_home
+        
+        home_am, away_am = parse_live_american_odds(g['odds_details'], home_name, away_name)
+        home_dec, away_dec = am_to_dec(home_am), am_to_dec(away_am)
+        
+        ev_home = (prob_home * home_dec) - 1
+        ev_away = (prob_away * away_dec) - 1
+        
+        reco = "Pasar (No hay EV+)"
+        kelly_pct = 0.0
+        
+        if ev_home > 0.02:
+            reco = f"Apostar Local ({home_name})"
+            kelly_pct = (ev_home / (home_dec - 1)) * KELLY_FRACTION
+        elif ev_away > 0.02:
+            reco = f"Apostar Visita ({away_name})"
+            kelly_pct = (ev_away / (away_dec - 1)) * KELLY_FRACTION
+            
+        results.append({
+            'Partido': f"{away_name} @ {home_name}",
+            'Prob_Local': f"{prob_home:.1%}",
+            'Prob_Visita': f"{prob_away:.1%}",
+            'Línea_Local': f"{home_am:+d}",
+            'Línea_Visita': f"{away_am:+d}",
+            'Decisión': reco,
+            'Sugerido_Kelly': f"{kelly_pct:.1%}" if kelly_pct > 0 else "0.0%"
+        })
+        
+    if results:
+        pd.set_option('display.max_columns', None)
+        pd.set_option('display.width', 1000)
+        print("====================== RECOMENDACIONES DE LA JORNADA ======================")
+        print(pd.DataFrame(results).to_string(index=False))
+        print("==========================================================================")
+        print(f"* Basado en un control del Criterio de Kelly al {KELLY_FRACTION:.0%}.\n")
+    else:
+        print("No se pudieron generar predicciones debido a problemas con la resolución de nombres.")
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        logger.error(f"Fatal error: {e}", exc_info=True)
-        sys.exit(1)
+    run_predictions()
