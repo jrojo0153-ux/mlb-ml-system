@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   run-pipeline:
-    runs_on: ubuntu-latest
+    runs-on: ubuntu-latest # Corregido: guión medio en lugar de guión bajo
 
     steps:
       - name: Descargar Código
