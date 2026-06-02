@@ -52,15 +52,12 @@ def resolve_team_id(name: str) -> int:
     return None
 
 def fetch_live_rolling_metrics(team_id: int, ref_date_str: str) -> dict:
-    # Consulta los encuentros reales jugados el último mes
     start_date = (datetime.strptime(ref_date_str, "%Y-%m-%d") - timedelta(days=35)).strftime("%Y-%m-%d")
     end_date = (datetime.strptime(ref_date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-    
     try:
         games = statsapi.schedule(start_date=start_date, end_date=end_date, team=team_id)
     except Exception:
         games = []
-        
     completed = []
     for g in games:
         if g.get('status') == 'Final' and g.get('game_type') in ['R', 'F', 'D', 'L', 'W']:
@@ -74,17 +71,13 @@ def fetch_live_rolling_metrics(team_id: int, ref_date_str: str) -> dict:
                 'runs_allowed': runs_allowed,
                 'won': won
             })
-            
     completed = sorted(completed, key=lambda x: x['date'])[-10:]
-    
     if len(completed) < 3:
         return {'rolling_runs_scored': 4.5, 'rolling_runs_allowed': 4.5, 'rolling_win_rate': 0.5, 'rest_days': 1}
-        
     df_temp = pd.DataFrame(completed)
     last_game_date = pd.to_datetime(df_temp['date'].iloc[-1])
     current_game_date = pd.to_datetime(ref_date_str)
     rest_days = min(max((current_game_date - last_game_date).days, 1), 10)
-    
     return {
         'rolling_runs_scored': df_temp['runs_scored'].mean(),
         'rolling_runs_allowed': df_temp['runs_allowed'].mean(),
@@ -100,14 +93,11 @@ def parse_live_american_odds(odds_details: str, home_name: str, away_name: str):
         parts = odds_details.split(" ")
         fav_abbr = parts[0]
         fav_odds = int(parts[1])
-        
         fav_id = resolve_team_id(fav_abbr)
         home_id = resolve_team_id(home_name)
         away_id = resolve_team_id(away_name)
-        
         underdog_odds = -fav_odds - 20 if fav_odds < 0 else -fav_odds + 20
         underdog_odds = max(underdog_odds, 100) if underdog_odds > 0 else min(underdog_odds, -100)
-            
         if fav_id == home_id:
             return fav_odds, underdog_odds
         elif fav_id == away_id:
@@ -121,34 +111,27 @@ def am_to_dec(am_odds):
 
 def run_predictions():
     if not os.path.exists(MODEL_PATH):
-        print("Modelo ausente. Corre primero train.py para entrenarlo.")
+        print("# Error\nModelo ausente. Corre primero train.py para entrenarlo.")
         return
-        
     model_data = joblib.load(MODEL_PATH)
     model = model_data['model']
     feature_cols = model_data['features']
-    
-    print("Capturando datos actuales de ESPN...")
     today_games = fetch_espn_live_odds()
+    today_str = datetime.now().strftime("%Y-%m-%d")
     
     if not today_games:
-        print("No se encontraron partidos programados para hoy en ESPN.")
+        print(f"# ⚾ Predicciones de la MLB para Hoy ({today_str})")
+        print("\nNo se encontraron partidos programados o con cuotas disponibles para hoy.")
         return
         
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    print(f"Analizando {len(today_games)} partidos para la jornada: {today_str}\n")
-    
-    results = []
+    predictions_list = []
     for g in today_games:
         home_name, away_name = g['home_name'], g['away_name']
         home_id, away_id = resolve_team_id(home_name), resolve_team_id(away_name)
-        
         if not home_id or not away_id:
             continue
-            
         h_stats = fetch_live_rolling_metrics(home_id, today_str)
         a_stats = fetch_live_rolling_metrics(away_id, today_str)
-        
         feat_vector = {
             'home_rolling_runs_scored': h_stats['rolling_runs_scored'],
             'home_rolling_runs_allowed': h_stats['rolling_runs_allowed'],
@@ -163,46 +146,46 @@ def run_predictions():
             'diff_runs_allowed': h_stats['rolling_runs_allowed'] - a_stats['rolling_runs_allowed'],
             'diff_rest_days': h_stats['rest_days'] - a_stats['rest_days']
         }
-        
         df_feat = pd.DataFrame([feat_vector])[feature_cols]
         prob_home = model.predict_proba(df_feat)[0, 1]
         prob_away = 1 - prob_home
-        
         home_am, away_am = parse_live_american_odds(g['odds_details'], home_name, away_name)
         home_dec, away_dec = am_to_dec(home_am), am_to_dec(away_am)
-        
         ev_home = (prob_home * home_dec) - 1
         ev_away = (prob_away * away_dec) - 1
         
-        reco = "Pasar (No hay EV+)"
+        reco = "Pasar"
         kelly_pct = 0.0
-        
         if ev_home > 0.02:
-            reco = f"Apostar Local ({home_name})"
+            reco = f"**Local** ({home_name})"
             kelly_pct = (ev_home / (home_dec - 1)) * KELLY_FRACTION
         elif ev_away > 0.02:
-            reco = f"Apostar Visita ({away_name})"
+            reco = f"**Visita** ({away_name})"
             kelly_pct = (ev_away / (away_dec - 1)) * KELLY_FRACTION
             
-        results.append({
-            'Partido': f"{away_name} @ {home_name}",
+        predictions_list.append({
+            'Matchup': f"{away_name} en {home_name}",
             'Prob_Local': f"{prob_home:.1%}",
             'Prob_Visita': f"{prob_away:.1%}",
-            'Línea_Local': f"{home_am:+d}",
-            'Línea_Visita': f"{away_am:+d}",
-            'Decisión': reco,
+            'Linea_Local': f"{home_am:+d}",
+            'Linea_Visita': f"{away_am:+d}",
+            'Dec_Apuesta': reco,
             'Sugerido_Kelly': f"{kelly_pct:.1%}" if kelly_pct > 0 else "0.0%"
         })
         
-    if results:
-        pd.set_option('display.max_columns', None)
-        pd.set_option('display.width', 1000)
-        print("====================== RECOMENDACIONES DE LA JORNADA ======================")
-        print(pd.DataFrame(results).to_string(index=False))
-        print("==========================================================================")
-        print(f"* Basado en un control del Criterio de Kelly al {KELLY_FRACTION:.0%}.\n")
-    else:
-        print("No se pudieron generar predicciones debido a problemas con la resolución de nombres.")
+    # Generar salida en Markdown para leerse como página web en GitHub
+    markdown_output = []
+    markdown_output.append(f"# ⚾ Predicciones de la MLB para Hoy")
+    markdown_output.append(f"**Fecha de generación:** {today_str} UTC\n")
+    markdown_output.append("| Partido | Prob Local | Prob Visita | Línea Local | Línea Visita | Decisión | Sugerido Kelly * |")
+    markdown_output.append("| :--- | :---: | :---: | :---: | :---: | :--- | :---: |")
+    for pred in predictions_list:
+        markdown_output.append(
+            f"| {pred['Matchup']} | {pred['Prob_Local']} | {pred['Prob_Visita']} | "
+            f"{pred['Linea_Local']} | {pred['Linea_Visita']} | {pred['Dec_Apuesta']} | {pred['Sugerido_Kelly']} |"
+        )
+    markdown_output.append("\n\n*Nota: La recomendación de Kelly está calculada usando una fracción de riesgo conservadora (10%).*")
+    print("\n".join(markdown_output))
 
 if __name__ == "__main__":
     run_predictions()
