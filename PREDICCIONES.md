@@ -1,23 +1,21 @@
 # ⚾ Predicciones de la MLB para Hoy
-**Fecha de generación:** 2026-06-29 UTC
+**Fecha de generación:** 2026-06-30 UTC
 
 | Partido | Prob Local | Prob Visita | Línea Local | Línea Visita | Decisión | Sugerido Kelly * |
 | :--- | :---: | :---: | :---: | :---: | :--- | :---: |
-| Cincinnati Reds en Pittsburgh Pirates | 55.5% | 44.5% | -110 | -110 | **Local** (Pittsburgh Pirates) | 0.7% |
-| Washington Nationals en Baltimore Orioles | 49.3% | 50.7% | -110 | -110 | Pasar | 0.0% |
-| Texas Rangers en Toronto Blue Jays | 50.0% | 50.0% | -110 | -110 | Pasar | 0.0% |
-| Arizona Diamondbacks en Tampa Bay Rays | 57.6% | 42.4% | -110 | -110 | **Local** (Tampa Bay Rays) | 1.1% |
-| Houston Astros en Detroit Tigers | 52.2% | 47.8% | -110 | -110 | Pasar | 0.0% |
-| Philadelphia Phillies en New York Mets | 36.6% | 63.4% | -110 | -110 | **Visita** (Philadelphia Phillies) | 2.3% |
-| Seattle Mariners en Cleveland Guardians | 53.1% | 46.9% | -110 | -110 | Pasar | 0.0% |
-| Chicago Cubs en Milwaukee Brewers | 39.3% | 60.7% | -110 | -110 | **Visita** (Chicago Cubs) | 1.8% |
-| Colorado Rockies en Minnesota Twins | 55.7% | 44.3% | -110 | -110 | **Local** (Minnesota Twins) | 0.7% |
-| Kansas City Royals en Chicago White Sox | 85.6% | 14.4% | -110 | -110 | **Local** (Chicago White Sox) | 7.0% |
-| Miami Marlins en St. Louis Cardinals | 50.6% | 49.4% | -110 | -110 | Pasar | 0.0% |
-| Athletics en Los Angeles Angels | 52.9% | 47.1% | -110 | -110 | Pasar | 0.0% |
-| Atlanta Braves en San Francisco Giants | 59.0% | 41.0% | -110 | -110 | **Local** (San Francisco Giants) | 1.4% |
-| Los Angeles Dodgers en San Diego Padres | 49.7% | 50.3% | -110 | -110 | Pasar | 0.0% |
-| New York Yankees en Boston Red Sox | 61.6% | 38.4% | -110 | -110 | **Local** (Boston Red Sox) | 1.9% |
+| Chicago White Sox en Baltimore Orioles | 54.0% | 46.0% | -110 | -110 | **Local** (Baltimore Orioles) | 0.3% |
+| Pittsburgh Pirates en Philadelphia Phillies | 45.8% | 54.2% | -110 | -110 | **Visita** (Pittsburgh Pirates) | 0.4% |
+| Texas Rangers en Cleveland Guardians | 54.4% | 45.6% | -110 | -110 | **Local** (Cleveland Guardians) | 0.4% |
+| Detroit Tigers en New York Yankees | 43.3% | 56.7% | -110 | -110 | **Visita** (Detroit Tigers) | 0.9% |
+| New York Mets en Toronto Blue Jays | 68.0% | 32.0% | -110 | -110 | **Local** (Toronto Blue Jays) | 3.3% |
+| Washington Nationals en Boston Red Sox | 51.9% | 48.1% | -110 | -110 | Pasar | 0.0% |
+| Cincinnati Reds en Milwaukee Brewers | 54.3% | 45.7% | -110 | -110 | **Local** (Milwaukee Brewers) | 0.4% |
+| San Diego Padres en Chicago Cubs | 59.4% | 40.6% | -110 | -110 | **Local** (Chicago Cubs) | 1.5% |
+| Minnesota Twins en Houston Astros | 59.6% | 40.4% | -110 | -110 | **Local** (Houston Astros) | 1.5% |
+| Miami Marlins en Colorado Rockies | 57.4% | 42.6% | -110 | -110 | **Local** (Colorado Rockies) | 1.1% |
+| Los Angeles Angels en Seattle Mariners | 61.4% | 38.6% | -110 | -110 | **Local** (Seattle Mariners) | 1.9% |
+| Los Angeles Dodgers en Athletics | 34.8% | 65.2% | -110 | -110 | **Visita** (Los Angeles Dodgers) | 2.7% |
+| San Francisco Giants en Arizona Diamondbacks | 43.6% | 56.4% | -110 | -110 | **Visita** (San Francisco Giants) | 0.8% |
 
 
 *Nota: La recomendación de Kelly está calculada usando una fracción de riesgo conservadora (10%).*
