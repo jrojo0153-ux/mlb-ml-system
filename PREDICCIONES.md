@@ -1,13 +1,13 @@
 # ⚾ Predicciones de la MLB para Hoy
-**Fecha de generación:** 2026-07-13 UTC
+**Fecha de generación:** 2026-07-14 UTC
 
 | Partido | Prob Local | Prob Visita | Línea Local | Línea Visita | Decisión | Sugerido Kelly * |
 | :--- | :---: | :---: | :---: | :---: | :--- | :---: |
 | Milwaukee Brewers en Pittsburgh Pirates | 57.1% | 42.9% | -110 | -110 | **Local** (Pittsburgh Pirates) | 1.0% |
 | Kansas City Royals en Baltimore Orioles | 64.1% | 35.9% | -110 | -110 | **Local** (Baltimore Orioles) | 2.5% |
 | New York Yankees en Washington Nationals | 51.3% | 48.7% | -110 | -110 | Pasar | 0.0% |
-| Boston Red Sox en New York Mets | 63.5% | 36.5% | -110 | -110 | **Local** (New York Mets) | 2.3% |
-| Chicago Cubs en Cincinnati Reds | 55.5% | 44.5% | -110 | -110 | **Local** (Cincinnati Reds) | 0.7% |
+| Boston Red Sox en New York Mets | 67.7% | 32.3% | -110 | -110 | **Local** (New York Mets) | 3.2% |
+| Chicago Cubs en Cincinnati Reds | 57.2% | 42.8% | -110 | -110 | **Local** (Cincinnati Reds) | 1.0% |
 | Cleveland Guardians en Miami Marlins | 51.4% | 48.6% | -110 | -110 | Pasar | 0.0% |
 | Philadelphia Phillies en Detroit Tigers | 60.2% | 39.8% | -110 | -110 | **Local** (Detroit Tigers) | 1.6% |
 | Seattle Mariners en Tampa Bay Rays | 49.3% | 50.7% | -110 | -110 | Pasar | 0.0% |
