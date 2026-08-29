@@ -1,23 +1,25 @@
 # ⚾ Predicciones de la MLB para Hoy
-**Fecha de generación:** 2026-08-28 UTC
+**Fecha de generación:** 2026-08-29 UTC
 
 | Partido | Prob Local | Prob Visita | Línea Local | Línea Visita | Decisión | Sugerido Kelly * |
 | :--- | :---: | :---: | :---: | :---: | :--- | :---: |
-| Cincinnati Reds en Chicago Cubs | 58.9% | 41.1% | -110 | -110 | **Local** (Chicago Cubs) | 1.4% |
-| Los Angeles Dodgers en Detroit Tigers | 47.4% | 52.6% | +160 | -180 | **Local** (Detroit Tigers) | 1.5% |
-| Miami Marlins en Washington Nationals | 47.3% | 52.7% | +114 | -134 | Pasar | 0.0% |
-| Houston Astros en New York Mets | 52.7% | 47.3% | +100 | -105 | **Local** (New York Mets) | 0.5% |
-| Kansas City Royals en Cleveland Guardians | 41.4% | 58.6% | -129 | +109 | **Visita** (Kansas City Royals) | 2.1% |
-| San Diego Padres en Tampa Bay Rays | 71.5% | 28.5% | -123 | +103 | **Local** (Tampa Bay Rays) | 3.7% |
-| Boston Red Sox en New York Yankees | 47.2% | 52.8% | -152 | +132 | **Visita** (Boston Red Sox) | 1.7% |
-| Colorado Rockies en Atlanta Braves | 61.0% | 39.0% | -216 | +196 | **Visita** (Colorado Rockies) | 0.8% |
-| Seattle Mariners en Toronto Blue Jays | 50.3% | 49.7% | -141 | +121 | **Visita** (Seattle Mariners) | 0.8% |
-| Texas Rangers en Milwaukee Brewers | 69.7% | 30.3% | -199 | +179 | **Local** (Milwaukee Brewers) | 0.9% |
-| Chicago White Sox en Minnesota Twins | 49.1% | 50.9% | -124 | +104 | **Visita** (Chicago White Sox) | 0.4% |
-| Pittsburgh Pirates en St. Louis Cardinals | 34.1% | 65.9% | +100 | -113 | **Visita** (Pittsburgh Pirates) | 2.7% |
-| Philadelphia Phillies en Los Angeles Angels | 63.8% | 36.2% | +103 | -123 | **Local** (Los Angeles Angels) | 2.9% |
-| Baltimore Orioles en Athletics | 46.4% | 53.6% | +100 | -108 | **Visita** (Baltimore Orioles) | 0.3% |
-| Arizona Diamondbacks en San Francisco Giants | 66.8% | 33.2% | +100 | -115 | **Local** (San Francisco Giants) | 3.4% |
+| Boston Red Sox en New York Yankees | 51.3% | 48.7% | -113 | +100 | Pasar | 0.0% |
+| Los Angeles Dodgers en Detroit Tigers | 42.5% | 57.5% | +156 | -176 | **Local** (Detroit Tigers) | 0.6% |
+| Chicago White Sox en Minnesota Twins | 55.1% | 44.9% | -114 | +100 | **Local** (Minnesota Twins) | 0.4% |
+| Pittsburgh Pirates en St. Louis Cardinals | 64.6% | 35.4% | -119 | +100 | **Local** (St. Louis Cardinals) | 2.2% |
+| Cincinnati Reds en Chicago Cubs | 59.5% | 40.5% | -187 | +167 | **Visita** (Cincinnati Reds) | 0.5% |
+| Seattle Mariners en Toronto Blue Jays | 41.9% | 58.1% | -106 | +100 | **Visita** (Seattle Mariners) | 1.6% |
+| Miami Marlins en Washington Nationals | 50.8% | 49.2% | -104 | +100 | Pasar | 0.0% |
+| Arizona Diamondbacks en San Francisco Giants | 56.0% | 44.0% | +100 | -105 | **Local** (San Francisco Giants) | 1.2% |
+| Colorado Rockies en Atlanta Braves | 61.1% | 38.9% | -223 | +203 | **Visita** (Colorado Rockies) | 0.9% |
+| Houston Astros en New York Mets | 54.4% | 45.6% | -130 | +110 | Pasar | 0.0% |
+| Kansas City Royals en Cleveland Guardians | 46.6% | 53.4% | -148 | +128 | **Visita** (Kansas City Royals) | 1.7% |
+| San Diego Padres en Tampa Bay Rays | 60.6% | 39.4% | -127 | +107 | **Local** (Tampa Bay Rays) | 1.1% |
+| Boston Red Sox en New York Yankees | 51.3% | 48.7% | -124 | +104 | Pasar | 0.0% |
+| Texas Rangers en Milwaukee Brewers | 65.7% | 34.3% | -156 | +136 | **Local** (Milwaukee Brewers) | 1.2% |
+| Arizona Diamondbacks en San Francisco Giants | 56.0% | 44.0% | +100 | -119 | **Local** (San Francisco Giants) | 1.2% |
+| Baltimore Orioles en Athletics | 51.4% | 48.6% | +120 | -140 | **Local** (Athletics) | 1.1% |
+| Philadelphia Phillies en Los Angeles Angels | 52.9% | 47.1% | +209 | -229 | **Local** (Los Angeles Angels) | 3.0% |
 
 
 *Nota: La recomendación de Kelly está calculada usando una fracción de riesgo conservadora (10%).*
