@@ -1,12 +1,12 @@
 # ⚾ Predicciones de la MLB para Hoy
-**Fecha de generación:** 2026-10-02 UTC
+**Fecha de generación:** 2026-10-03 UTC
 
 | Partido | Prob Local | Prob Visita | Línea Local | Línea Visita | Decisión | Sugerido Kelly * |
 | :--- | :---: | :---: | :---: | :---: | :--- | :---: |
-| Chicago White Sox en Cleveland Guardians | 48.7% | 51.3% | -157 | +137 | **Visita** (Chicago White Sox) | 1.6% |
-| Atlanta Braves en Los Angeles Dodgers | 60.2% | 39.8% | -217 | +197 | **Visita** (Atlanta Braves) | 0.9% |
-| New York Yankees en Tampa Bay Rays | 54.8% | 45.2% | -136 | +116 | Pasar | 0.0% |
-| San Diego Padres en Milwaukee Brewers | 47.0% | 53.0% | -218 | +198 | **Visita** (San Diego Padres) | 2.9% |
+| Chicago White Sox en Cleveland Guardians | 41.0% | 59.0% | -149 | +129 | **Visita** (Chicago White Sox) | 2.7% |
+| Atlanta Braves en Los Angeles Dodgers | 78.1% | 21.9% | -212 | +192 | **Local** (Los Angeles Dodgers) | 3.2% |
+| New York Yankees en Tampa Bay Rays | 39.6% | 60.4% | -135 | +115 | **Visita** (New York Yankees) | 2.6% |
+| San Diego Padres en Milwaukee Brewers | 46.2% | 53.8% | -198 | +178 | **Visita** (San Diego Padres) | 2.8% |
 
 
 *Nota: La recomendación de Kelly está calculada usando una fracción de riesgo conservadora (10%).*
