@@ -1,9 +1,9 @@
 # ⚾ Predicciones de la MLB para Hoy
-**Fecha de generación:** 2026-10-19 UTC
+**Fecha de generación:** 2026-10-20 UTC
 
 | Partido | Prob Local | Prob Visita | Línea Local | Línea Visita | Decisión | Sugerido Kelly * |
 | :--- | :---: | :---: | :---: | :---: | :--- | :---: |
-| Cleveland Guardians en Tampa Bay Rays | 54.6% | 45.4% | -157 | +137 | **Visita** (Cleveland Guardians) | 0.5% |
+| Tampa Bay Rays en Milwaukee Brewers | 43.8% | 56.2% | -162 | +142 | **Visita** (Tampa Bay Rays) | 2.5% |
 
 
 *Nota: La recomendación de Kelly está calculada usando una fracción de riesgo conservadora (10%).*
