@@ -1,5 +1,5 @@
 # ⚾ Predicciones de la MLB para Hoy
-**Fecha de generación:** 2026-11-20 UTC
+**Fecha de generación:** 2026-11-21 UTC
 
 | Partido | Prob Local | Prob Visita | Línea Local | Línea Visita | Decisión | Sugerido Kelly * |
 | :--- | :---: | :---: | :---: | :---: | :--- | :---: |
